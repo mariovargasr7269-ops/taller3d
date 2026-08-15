@@ -1,0 +1,12 @@
+{
+  "name": "CreaMYD · Creaciones en Impresión 3D",
+  "short_name": "CreaMYD",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#f4f6fb",
+  "theme_color": "#ff6b35",
+  "icons": [
+    { "src": "logo-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "logo-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
