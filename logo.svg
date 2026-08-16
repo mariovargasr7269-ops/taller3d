@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Definiciones: degradados, sombras -->
+  <defs>
+    <!-- Degradado principal naranja-rojo para la letra C -->
+    <linearGradient id="gradMain" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff8a4c"/>
+      <stop offset="55%" stop-color="#ff6b35"/>
+      <stop offset="100%" stop-color="#ff5f6d"/>
+    </linearGradient>
+    <!-- Degradado turquesa para capas internas -->
+    <linearGradient id="gradTeal" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22c9b7"/>
+      <stop offset="100%" stop-color="#0fb5a6"/>
+    </linearGradient>
+    <!-- Sombra suave -->
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="8"/>
+      <feOffset dx="0" dy="6" result="offsetblur"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.25"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Fondo con esquinas redondeadas (estilo icono) -->
+  <rect x="0" y="0" width="512" height="512" rx="112" ry="112" fill="#f4f6fb"/>
+
+  <!-- Capas de impresión 3D (estratos horizontales en turquesa) que sugieren impresión por capas -->
+  <!-- Cada capa es un trapecio que sigue la curvatura de la C -->
+  <g opacity="0.9">
+    <!-- Capa superior (más clara) -->
+    <path d="M 196 96 Q 256 80 316 96 L 308 124 Q 256 112 204 124 Z" fill="#22c9b7" opacity="0.5"/>
+    <!-- Capa 2 -->
+    <path d="M 188 130 Q 256 112 324 130 L 318 158 Q 256 144 194 158 Z" fill="#22c9b7" opacity="0.65"/>
+    <!-- Capa 3 -->
+    <path d="M 182 164 Q 256 144 330 164 L 324 192 Q 256 176 188 192 Z" fill="#22c9b7" opacity="0.8"/>
+    <!-- Capa 4 -->
+    <path d="M 178 198 Q 256 176 334 198 L 328 226 Q 256 208 184 226 Z" fill="#22c9b7" opacity="0.95"/>
+  </g>
+
+  <!-- Letra C principal hecha con capas (estilo impresión 3D) -->
+  <g filter="url(#softShadow)">
+    <!-- Cuerpo principal de la C -->
+    <path d="
+      M 256 130
+      Q 156 130 156 256
+      Q 156 382 256 382
+      Q 332 382 356 318
+      L 304 304
+      Q 290 332 256 332
+      Q 206 332 206 256
+      Q 206 180 256 180
+      Q 290 180 304 208
+      L 356 194
+      Q 332 130 256 130 Z
+    " fill="url(#gradMain)"/>
+
+    <!-- Líneas horizontales sutiles simulando capas de impresión dentro de la C -->
+    <g stroke="#ffffff" stroke-width="2" opacity="0.25" fill="none">
+      <line x1="170" y1="180" x2="320" y2="180"/>
+      <line x1="162" y1="220" x2="335" y2="220"/>
+      <line x1="158" y1="260" x2="338" y2="260"/>
+      <line x1="162" y1="300" x2="335" y2="300"/>
+      <line x1="170" y1="340" x2="320" y2="340"/>
+    </g>
+
+    <!-- Punto turquesa decorativo (acento) en el borde superior derecho de la C -->
+    <circle cx="356" cy="200" r="14" fill="#0fb5a6"/>
+    <circle cx="356" cy="200" r="6" fill="#ffffff" opacity="0.6"/>
+
+    <!-- Pequeña boquilla de impresora arriba (extrusor) -->
+    <g transform="translate(256, 60)">
+      <!-- Cuerpo de la boquilla -->
+      <rect x="-22" y="-22" width="44" height="22" rx="4" fill="#ff6b35"/>
+      <polygon points="-8,0 8,0 4,16 -4,16" fill="#0fb5a6"/>
+      <!-- Filamento saliendo -->
+      <line x1="0" y1="16" x2="0" y2="28" stroke="#22c9b7" stroke-width="4" stroke-linecap="round"/>
+    </g>
+  </g>
+
+  <!-- Brillo sutil superior (highlight) para efecto 3D -->
+  <path d="M 200 150 Q 256 140 312 150" stroke="#ffffff" stroke-width="3" opacity="0.4" stroke-linecap="round" fill="none"/>
+</svg>
