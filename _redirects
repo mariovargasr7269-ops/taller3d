@@ -1,0 +1,6 @@
+# Redirección para que /index.html no se indexe dos veces
+# (Netlify ya sirve /index.html para /, pero esto fuerza la canonical)
+/     /index.html   200
+
+# Asegura que el manifest se sirva con el content-type correcto
+/manifest.webmanifest  /manifest.webmanifest  200
