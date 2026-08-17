@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Logo Taller 3D: pirámide en capas + boquilla extrusora + filamento -->
+  <defs>
+    <!-- Fondo: gradiente cálido naranja-coral -->
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff8a4c"/>
+      <stop offset="55%" stop-color="#ff6b35"/>
+      <stop offset="100%" stop-color="#ff5f6d"/>
+    </linearGradient>
+    <!-- Gradiente capas de la pirámide (de claro a oscuro, simula iluminación) -->
+    <linearGradient id="layerTop" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#fff0e9"/>
+    </linearGradient>
+    <linearGradient id="layerMid" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffd9c2"/>
+      <stop offset="100%" stop-color="#ffb89a"/>
+    </linearGradient>
+    <linearGradient id="layerBot" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffa07a"/>
+      <stop offset="100%" stop-color="#ff7a52"/>
+    </linearGradient>
+    <!-- Gradiente boquilla -->
+    <linearGradient id="nozzle" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#3a4256"/>
+      <stop offset="100%" stop-color="#1f2535"/>
+    </linearGradient>
+    <!-- Gradiente filamento turquesa -->
+    <linearGradient id="filament" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#22c9b7"/>
+      <stop offset="100%" stop-color="#0fb5a6"/>
+    </linearGradient>
+    <!-- Sombra suave para la pirámide -->
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="6"/>
+      <feOffset dx="0" dy="8" result="offsetblur"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.3"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Fondo con esquinas redondeadas -->
+  <rect x="0" y="0" width="512" height="512" rx="112" ry="112" fill="url(#bg)"/>
+
+  <!-- Boquilla/extrusor arriba (centrado horizontalmente en x=256) -->
+  <g>
+    <!-- Cuerpo principal de la boquilla (trapecio invertido) -->
+    <rect x="216" y="64" width="80" height="40" rx="6" fill="url(#nozzle)"/>
+    <!-- Pico de la boquilla (triángulo/trapezoide estrechándose hacia abajo) -->
+    <polygon points="232,104 280,104 268,140 244,140" fill="url(#nozzle)"/>
+    <!-- Detalle dorado/naranja en la boquilla (banda) -->
+    <rect x="216" y="74" width="80" height="6" fill="#ff6b35" opacity="0.8"/>
+    <!-- Highlight superior para efecto 3D -->
+    <rect x="220" y="68" width="72" height="3" fill="#ffffff" opacity="0.3"/>
+  </g>
+
+  <!-- Filamento turquesa cayendo de la boquilla hacia la pirámide -->
+  <path d="M 256 140 L 256 175" stroke="url(#filament)" stroke-width="6" stroke-linecap="round"/>
+  <!-- Pequeña gota de filamento en la punta -->
+  <circle cx="256" cy="178" r="5" fill="#22c9b7"/>
+
+  <!-- Pirámide en capas (estilo FDM impreso) - perspectiva isométrica -->
+  <g filter="url(#softShadow)">
+    <!-- Capa 1 (base, más grande y oscura) -->
+    <polygon points="146,400 366,400 332,360 180,360" fill="url(#layerBot)"/>
+    <!-- Capa 2 -->
+    <polygon points="180,360 332,360 308,320 204,320" fill="url(#layerBot)"/>
+    <!-- Capa 3 -->
+    <polygon points="204,320 308,320 290,280 222,280" fill="url(#layerMid)"/>
+    <!-- Capa 4 -->
+    <polygon points="222,280 290,280 278,240 234,240" fill="url(#layerMid)"/>
+    <!-- Capa 5 (cima, más pequeña y clara) -->
+    <polygon points="234,240 278,240 268,200 244,200" fill="url(#layerTop)"/>
+  </g>
+
+  <!-- Líneas sutiles entre capas para acentuar el efecto FDM -->
+  <g stroke="#ff5f3d" stroke-width="1.5" opacity="0.3" fill="none">
+    <line x1="180" y1="360" x2="332" y2="360"/>
+    <line x1="204" y1="320" x2="308" y2="320"/>
+    <line x1="222" y1="280" x2="290" y2="280"/>
+    <line x1="234" y1="240" x2="278" y2="240"/>
+  </g>
+
+  <!-- Brillo sutil en la cima de la pirámide -->
+  <polygon points="240,210 272,210 268,200 244,200" fill="#ffffff" opacity="0.6"/>
+
+  <!-- Detalles decorativos: pequeños puntos brillantes (chispas/sparkles) -->
+  <g fill="#ffffff" opacity="0.85">
+    <circle cx="100" cy="100" r="4"/>
+    <circle cx="420" cy="120" r="3"/>
+    <circle cx="80" cy="280" r="3"/>
+    <circle cx="430" cy="300" r="4"/>
+  </g>
+  <!-- Brillos más pequeños -->
+  <g fill="#ffffff" opacity="0.5">
+    <circle cx="120" cy="160" r="2"/>
+    <circle cx="400" cy="220" r="2"/>
+    <circle cx="140" cy="440" r="2"/>
+    <circle cx="380" cy="440" r="2"/>
+  </g>
+</svg>
