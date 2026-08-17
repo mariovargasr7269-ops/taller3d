@@ -1,0 +1,33 @@
+# Netlify _headers - configuración de cache y seguridad para CreaMYD PWA
+
+# Manifest: sin cache (siempre la versión más reciente)
+/manifest.webmanifest
+  Cache-Control: public, max-age=0, must-revalidate
+  Content-Type: application/manifest+json
+
+# Service Worker: sin cache (siempre la versión más reciente)
+/sw.js
+  Cache-Control: public, max-age=0, must-revalidate
+  Content-Type: application/javascript
+
+# HTML principal: sin cache (siempre la versión más reciente)
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Iconos e imágenes: cache largo (1 año, son estáticos)
+/*.png
+  Cache-Control: public, max-age=31536000, immutable
+
+# SVG: cache largo
+/*.svg
+  Cache-Control: public, max-age=31536000, immutable
+
+# Favicon: cache largo
+/favicon.ico
+  Cache-Control: public, max-age=31536000, immutable
+
+# Headers de seguridad
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+  Referrer-Policy: strict-origin-when-cross-origin
