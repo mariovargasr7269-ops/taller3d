@@ -234,6 +234,7 @@ pre.msg{white-space:pre-wrap;background:#f6f8fc;border:1.5px solid #e3e7f0;borde
 <aside class="drawer" id="drawer">
  <div class="dhead"><div class="logo" id="drawerLogoWrap"><img id="drawerLogo" src="logo-512.png" alt="Logo" style="width:50px;height:50px;border-radius:16px;object-fit:cover;background:rgba(255,255,255,.22)"></div><div><b id="dNegocio">Taller 3D</b><small>Gestión de tu emprendimiento</small></div></div>
  <button class="ditem active" data-view="inicio" onclick="go('inicio')">🏠 Inicio</button>
+ <button class="ditem" data-view="ventas" onclick="go('ventas')">💰 Ventas</button>
  <button class="ditem" data-view="gastos" onclick="go('gastos')">💸 Gastos</button>
  <button class="ditem" data-view="piezas" onclick="go('piezas')">🖨️ Piezas y catálogo</button>
  <button class="ditem" data-view="inventario" onclick="go('inventario')">📦 Inventario</button>
@@ -380,6 +381,29 @@ pre.msg{white-space:pre-wrap;background:#f6f8fc;border:1.5px solid #e3e7f0;borde
  <button class="btn" onclick="guardarImp()">Guardar impresión 💾</button>
  <button class="btn ghost hidden" id="btnCancelEdit" onclick="fillForm(null);go('piezas')">Cancelar edición</button>
  <button class="btn ghost" onclick="fillForm(null);toast('Formulario limpio 🧹')"> Limpiar</button>
+</section>
+
+<section class="view" id="view-ventas">
+ <div class="toolbar">
+  <h3>💰 Historial de ventas</h3>
+  <select id="filtroVentaMetodo" onchange="renderVentas()">
+   <option value="todas">Todos los métodos</option>
+   <option value="Efectivo">Efectivo</option>
+   <option value="Transferencia">Transferencia</option>
+   <option value="Pago móvil">Pago móvil</option>
+   <option value="Tarjeta">Tarjeta</option>
+   <option value="Otro">Otro</option>
+  </select>
+ </div>
+ <div class="field" style="margin-bottom:10px">
+  <input id="filtroVentaCliente" placeholder="🔍 Buscar por cliente o N° de recibo..." oninput="renderVentas()">
+ </div>
+ <div class="grid2" style="margin-bottom:14px">
+  <div class="field"><label>Desde</label><input type="date" id="filtroVentaDesde" onchange="renderVentas()"></div>
+  <div class="field"><label>Hasta</label><input type="date" id="filtroVentaHasta" onchange="renderVentas()"></div>
+ </div>
+ <button class="btn ghost small" style="margin-bottom:14px" onclick="limpiarFiltrosVenta()">✕ Limpiar filtros</button>
+ <div id="listaVentas"></div>
 </section>
 
 <section class="view" id="view-piezas">
@@ -651,7 +675,7 @@ var editId=null,currentFoto=null,currentFotos=[],pendingGasto=null,tabActual='mi
 function openDrawer(){$('#drawer').classList.add('open');$('#scrim').classList.add('show')}
 function closeDrawer(){$('#drawer').classList.remove('open');$('#scrim').classList.remove('show')}
 function go(view){closeDrawer();var vs=$$('.view');for(var i=0;i<vs.length;i++)vs[i].classList.remove('active');$('#view-'+view).classList.add('active');var ds=$$('.ditem');for(var j=0;j<ds.length;j++)ds[j].classList.toggle('active',ds[j].getAttribute('data-view')===view);
- if(view==='inicio')renderInicio();if(view==='gastos')renderGastos();if(view==='piezas')renderImpresiones();if(view==='inventario')renderInventario();if(view==='clientes')renderClientes();if(view==='reportes')renderReportes();if(view==='ajustes')renderAjustes();window.scrollTo(0,0)}
+ if(view==='inicio')renderInicio();if(view==='ventas')renderVentas();if(view==='gastos')renderGastos();if(view==='piezas')renderImpresiones();if(view==='inventario')renderInventario();if(view==='clientes')renderClientes();if(view==='reportes')renderReportes();if(view==='ajustes')renderAjustes();window.scrollTo(0,0)}
 function setTab(t){tabActual=t;$('#tabMis').classList.toggle('active',t==='mis');$('#tabCat').classList.toggle('active',t==='cat');$('#boxMis').classList.toggle('hidden',t!=='mis');$('#boxCat').classList.toggle('hidden',t!=='cat');renderImpresiones()}
 function cerrarOverlay(){$('#overlay').classList.add('hidden')}
 function refreshNombre(){var n=state.config.nombreNegocio||'Taller 3D';$('#topNegocio').textContent=n;$('#dNegocio').textContent=n;refreshLogoNeg()}
@@ -838,13 +862,13 @@ function guardarEditVenta(vid){var v=state.ventas.find(function(x){return x.id==
  var descMonto=subtotal*(descPct/100);
  v.subtotal=subtotal;v.descPct=descPct;v.descMonto=descMonto;v.total=subtotal-descMonto;
  v.cliente=$('#evCliente').value.trim();v.metodoPago=$('#evMetodo').value;
- save();cerrarOverlay();renderInicio();renderImpresiones();toast('Venta actualizada ✅')}
+ save();cerrarOverlay();renderInicio();renderImpresiones();if(document.getElementById('listaVentas'))renderVentas();toast('Venta actualizada ✅')}
 function borrarVenta(vid){var v=state.ventas.find(function(x){return x.id===vid});if(!v)return;
  if(!confirm('¿Seguro que quieres ELIMINAR la venta N° '+String(v.num).padStart(4,'0')+'?\n\nEsto pondrá las piezas de vuelta como "sin vender".\n\nNo se puede deshacer.'))return;
  // Restaurar piezas a estado "impresa"
  v.items.forEach(function(it){var i=findImp(it.impId);if(i){i.estado='impresa';i.ventaId=null;i.precioVenta=0;i.fechaVenta=null;i.metodoPago=null}});
  state.ventas=state.ventas.filter(function(x){return x.id!==vid});
- save();cerrarOverlay();renderInicio();renderImpresiones();toast('Venta eliminada 🗑️')}
+ save();cerrarOverlay();renderInicio();renderImpresiones();if(document.getElementById('listaVentas'))renderVentas();toast('Venta eliminada 🗑️')}
 function printFrame(doc){var f=document.createElement('iframe');f.setAttribute('style','position:fixed;right:0;bottom:0;width:0;height:0;border:0');document.body.appendChild(f);f.onload=function(){try{f.contentWindow.focus();f.contentWindow.print()}catch(e){}setTimeout(function(){f.remove()},4000)};f.srcdoc=doc}
 function printReciboVenta(vid){var v=state.ventas.find(function(x){return x.id===vid});var doc='<!DOCTYPE html><html><head><meta charset="utf-8"><style>@page{size:58mm auto;margin:0}body{width:54mm;margin:0 auto;font-family:"Courier New",monospace;font-size:11px;line-height:1.5;color:#000;white-space:pre-wrap;padding:3mm 1mm}</style></head><body>'+esc(reciboStrVenta(v))+'</body></html>';printFrame(doc);toast('Elige tu impresora térmica 🖨️')}
 function printGasto(id){var g=state.gastos.find(function(x){return x.id===id});var L=['================================','  COMPROBANTE DE GASTO','  '+(state.config.nombreNegocio||'Taller 3D').toUpperCase(),'================================','Fecha: '+fFecha(g.fecha),'Categoría: '+CATS[g.categoria].n,'Concepto: '+(g.concepto||'-'),'--------------------------------','MONTO: '+usd(g.monto),'================================'];var doc='<!DOCTYPE html><html><head><meta charset="utf-8"><style>@page{size:58mm auto;margin:0}body{width:54mm;margin:0 auto;font-family:"Courier New",monospace;font-size:11px;line-height:1.5;color:#000;white-space:pre-wrap;padding:3mm 1mm}</style></head><body>'+esc(L.join('\n'))+'</body></html>';printFrame(doc)}
@@ -897,6 +921,61 @@ function compartirPromo(){var s=document.getElementById('mPromoSel'),p=document.
 function modalEnviarClientes(prodId){if(!state.clientes.length){$('#sheetContent').innerHTML='<h3>💬 Clientes</h3><div class="empty">Sin clientes.</div><button class="btn" onclick="cerrarOverlay();modalCliente(null)">➕ Agregar</button>';$('#overlay').classList.remove('hidden');return}
  $('#sheetContent').innerHTML='<h3>💬 ¿A quién?</h3>'+state.clientes.map(function(c){return '<a class="row-client" target="_blank" href="'+waLink(c.telefono,textoPromo(prodId||null,c.nombre))+'">💬 <span>'+esc(c.nombre)+'<small>'+esc(c.telefono)+'</small></span></a>'}).join('')+'<button class="btn ghost" onclick="cerrarOverlay()">Cerrar</button>';$('#overlay').classList.remove('hidden')}
 function renderClientes(){$('#listaClientes').innerHTML=state.clientes.slice().sort(function(a,b){return a.nombre.localeCompare(b.nombre)}).map(function(c){return '<div class="card item"><div class="avatar">'+esc((c.nombre||'?')[0].toUpperCase())+'</div><div class="txt"><b>'+esc(c.nombre)+'</b><small>'+esc(c.telefono)+(c.notas?' · '+esc(c.notas):'')+'</small></div><a class="iconbtn" href="'+waLink(c.telefono,'¡Hola! 👋')+'" target="_blank">💬</a><button class="iconbtn" onclick="modalCliente(\''+c.id+'\')">✏️</button><button class="iconbtn" onclick="delCliente(\''+c.id+'\')">🗑️</button></div>'}).join('')||'<div class="empty">Sin clientes 📣</div>'}
+// === NUEVA FUNCIÓN: Renderizar historial de ventas con filtros ===
+function renderVentas(){
+ var vs=state.ventas.slice().sort(function(a,b){return b.fecha.localeCompare(a.fecha)});
+ // Aplicar filtros
+ var fMetodo=$('#filtroVentaMetodo')?$('#filtroVentaMetodo').value:'todas';
+ var fCliente=($('#filtroVentaCliente')?$('#filtroVentaCliente').value:'').toLowerCase().trim();
+ var fDesde=$('#filtroVentaDesde')?$('#filtroVentaDesde').value:'';
+ var fHasta=$('#filtroVentaHasta')?$('#filtroVentaHasta').value:'';
+ var filtradas=vs.filter(function(v){
+  if(fMetodo!=='todas'&&v.metodoPago!==fMetodo)return false;
+  if(fCliente){
+   var numStr=String(v.num).padStart(4,'0');
+   var nombre=(v.cliente||'').toLowerCase();
+   if(nombre.indexOf(fCliente)<0&&numStr.indexOf(fCliente)<0)return false;
+  }
+  if(fDesde&&v.fecha<fDesde)return false;
+  if(fHasta&&v.fecha>fHasta)return false;
+  return true;
+ });
+ var html='';
+ if(filtradas.length===0){
+  html='<div class="empty">Sin ventas que coincidan con los filtros.<br>Prueba limpiando los filtros o registra una venta con el botón <b>Vender</b> en Inicio.</div>';
+ }else{
+  // Calcular totales
+  var total=filtradas.reduce(function(s,v){return s+(+v.total||0)},0);
+  var costoTotal=0;
+  filtradas.forEach(function(v){(v.items||[]).forEach(function(it){costoTotal+=+(it.costo||0)})});
+  var ganancia=total-costoTotal;
+  // Resumen
+  html+='<div class="card"><h3>📊 Resumen de la vista actual</h3>';
+  html+='<div class="kv"><span>🧾 Ventas mostradas</span><b>'+filtradas.length+'</b></div>';
+  html+='<div class="kv"><span>💵 Ingresos totales</span><b>'+usd(total)+'</b></div>';
+  html+='<div class="kv"><span>🏭 Costo de producción</span><b style="color:var(--bad)">'+usd(costoTotal)+'</b></div>';
+  html+='<div class="kv"><span>📈 Ganancia bruta</span><b style="color:var(--teal)">'+usd(ganancia)+'</b></div>';
+  html+='</div>';
+  // Lista de ventas
+  filtradas.forEach(function(v){
+   var itemsTxt=v.items.map(function(it){return esc(it.nombre)}).join(', ');
+   var descBadge=v.descPct>0?' <span class="badge b-ven" style="background:var(--amberS);color:var(--amber)">🎁 '+v.descPct+'%</span>':'';
+   html+='<div class="card" style="cursor:pointer" onclick="modalReciboVenta(\''+v.id+'\')">';
+   html+='<div class="kv"><span>🧾 Recibo #'+String(v.num).padStart(4,'0')+descBadge+'</span><b>'+usd(v.total)+'</b></div>';
+   html+='<div class="kv"><span>📅 '+fFecha(v.fecha)+'</span><small>'+(v.metodoPago||'')+'</small></div>';
+   if(v.cliente)html+='<div class="kv"><span>👤 '+esc(v.cliente)+'</span><small>'+v.items.length+' pieza(s)</small></div>';
+   html+='<div class="loc" style="margin-top:6px">'+itemsTxt+'</div>';
+   html+='<div class="mini" style="margin-top:8px"><small class="loc">Toca para ver recibo, editar o eliminar →</small></div>';
+   html+='</div>';
+  });
+ }
+ $('#listaVentas').innerHTML=html}
+function limpiarFiltrosVenta(){
+ var m=$('#filtroVentaMetodo');if(m)m.value='todas';
+ var c=$('#filtroVentaCliente');if(c)c.value='';
+ var d=$('#filtroVentaDesde');if(d)d.value='';
+ var h=$('#filtroVentaHasta');if(h)h.value='';
+ renderVentas()}
 function modalCliente(id){var c=id?state.clientes.find(function(x){return x.id===id}):null;$('#sheetContent').innerHTML='<h3>'+(c?'✏️ Cliente':'➕ Cliente')+'</h3><div class="field" style="margin-top:10px"><label>Nombre *</label><input id="mClNombre" value="'+esc(c?c.nombre:'')+'"></div><div class="field"><label>WhatsApp *</label><input id="mClTel" value="'+esc(c?c.telefono:'')+'"></div><div class="field"><label>Notas</label><input id="mClNotas" value="'+esc(c?c.notas||'':'')+'"></div><div class="grid2"><button class="btn ghost" onclick="cerrarOverlay()">Cancelar</button><button class="btn" onclick="guardarCliente(\''+(id||'')+'\')">💾</button></div>';$('#overlay').classList.remove('hidden')}
 function guardarCliente(id){var c=id?state.clientes.find(function(x){return x.id===id}):null;var n=$('#mClNombre').value.trim(),t=$('#mClTel').value.trim(),o=$('#mClNotas').value.trim();if(!n||!t){toast('Nombre y WhatsApp');return}if(c){c.nombre=n;c.telefono=t;c.notas=o}else state.clientes.push({id:uid(),nombre:n,telefono:t,notas:o});save();cerrarOverlay();renderClientes();toast('✅')}
 function delCliente(id){if(!confirm('¿Eliminar?'))return;state.clientes=state.clientes.filter(function(c){return c.id!==id});save();renderClientes()}
