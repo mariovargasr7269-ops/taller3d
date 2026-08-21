@@ -1,5 +1,5 @@
 /* Service Worker para Taller 3D PWA - v5.0 (rebrand Taller 3D) */
-var CACHE = 'taller3d-v5-0';
+var CACHE = 'taller3d-v6-0';
 var ASSETS = [
   './',
   './index.html',

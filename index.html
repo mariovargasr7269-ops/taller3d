@@ -155,6 +155,25 @@ input:focus,select:focus{border-color:var(--pri);background:#fff}
 .item .monto{font-size:17px;white-space:nowrap;color:var(--bad);font-weight:800}
 .thumb{width:62px;height:62px;border-radius:14px;object-fit:cover;flex-shrink:0}
 .thumb.ph{display:flex;align-items:center;justify-content:center;background:var(--priS);font-size:27px}
+.foto-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+.foto-thumb{position:relative}
+@media (max-width:400px){.foto-grid{grid-template-columns:repeat(2,1fr)}}
+/* Carrusel de fotos en el detalle del producto */
+.foto-carrusel{position:relative;width:100%;margin-bottom:12px}
+.foto-carrusel .main-foto{width:100%;max-height:320px;object-fit:cover;border-radius:16px;display:block}
+.foto-carrusel .nav-btn{position:absolute;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.55);color:#fff;border:none;width:38px;height:38px;border-radius:50%;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.foto-carrusel .nav-btn:active{background:rgba(0,0,0,.8)}
+.foto-carrusel .prev{left:8px}
+.foto-carrusel .next{right:8px}
+.foto-carrusel .dots{display:flex;gap:5px;justify-content:center;margin-top:8px}
+.foto-carrusel .dot{width:8px;height:8px;border-radius:50%;background:var(--line);cursor:pointer;transition:.2s}
+.foto-carrusel .dot.active{background:var(--pri);width:22px;border-radius:4px}
+.foto-thumbs-row{display:flex;gap:6px;overflow-x:auto;padding:6px 0;margin-bottom:8px}
+.foto-thumbs-row img{width:54px;height:54px;border-radius:10px;object-fit:cover;flex-shrink:0;cursor:pointer;border:2px solid transparent}
+.foto-thumbs-row img.active{border-color:var(--pri)}
+/* Catálogo más compacto en móvil */
+@media (max-width:560px){.grid-cat{grid-template-columns:1fr 1fr!important;gap:10px!important}.catcard .pad{padding:8px 9px 9px}.catcard .pad b{font-size:13px}.catcard .price{font-size:15px}.catcard .ph{font-size:32px}}
+@media (max-width:380px){.grid-cat{grid-template-columns:1fr 1fr!important}}
 .badge{font-size:12.5px;padding:5px 11px;border-radius:99px;font-weight:800;white-space:nowrap}
 .b-imp{background:var(--blueS);color:var(--blue)}
 .b-ven{background:var(--okS);color:var(--ok)}
@@ -302,10 +321,11 @@ pre.msg{white-space:pre-wrap;background:#f6f8fc;border:1.5px solid #e3e7f0;borde
  <div class="card">
   <h3 id="tituloNueva">🖨️ Registrar impresión</h3>
   <div class="field">
-   <label>📷 Foto (pieza + catálogo + WhatsApp)</label>
-   <button class="btn ghost" style="margin-top:0" onclick="document.getElementById('iFotoFile').click()">📷 Tomar o subir foto</button>
-   <input type="file" id="iFotoFile" accept="image/*" capture="environment" class="hidden" onchange="fotoChange(event)">
+   <label>📷 Fotos (pieza + catálogo + WhatsApp) — hasta 5</label>
+   <button class="btn ghost" style="margin-top:0" onclick="document.getElementById('iFotoFile').click()">📷 Tomar foto o subir de galería</button>
+   <input type="file" id="iFotoFile" accept="image/*" class="hidden" onchange="fotoChange(event)">
    <div id="iFotoPrev"></div>
+   <p class="hint" id="fotoCount" style="margin-top:4px"></p>
    <label class="chk" style="margin-top:10px"><input type="checkbox" id="iCatalogo" checked> 📸 Publicar en el catálogo</label>
   </div>
   <div class="field"><label>Nombre de la pieza *</label><input id="iNombre" placeholder="Ej: Maceta Groot" oninput="liveCalc()"></div>
@@ -563,6 +583,19 @@ function calcular(v){var mat=v.gramos/1000*v.precioKg,maq=v.horasImp*v.costoHora
 function calcDe(i){return calcular({gramos:+i.gramos,precioKg:+i.precioKg,horasImp:+i.horasImp,costoHora:+i.costoHora,horasMan:+i.horasMan,tarifaMan:+i.tarifaMan,extras:+i.extras,merma:+i.mermaPct,margen:+i.margenPct})}
 function precioDe(i){if(+i.precioPublico>0)return +i.precioPublico;return calcDe(i).sugerido}
 function findImp(id){return state.impresiones.find(function(x){return x.id===id})}
+// === FUNCIÓN CLAVE: Calcular ganancia REAL ===
+// La ganancia real = Ingresos por ventas - Costos de producción de las piezas vendidas - Gastos operativos
+// NO es solo "ventas - gastos" porque cada pieza vendida tuvo un costo de fabricación
+function calcGanancias(){var vs=state.ventas,g=state.gastos;
+ var ventas=vs.reduce(function(s,v){return s+(+v.total||0)},0);
+ var costoVentas=0; // costo de producción de las piezas vendidas
+ vs.forEach(function(v){(v.items||[]).forEach(function(it){costoVentas+=+(it.costo||0)})});
+ var descuentos=vs.reduce(function(s,v){return s+(+v.descMonto||0)},0);
+ var gas=g.filter(function(x){return x.categoria!=='inversion'}).reduce(function(s,x){return s+ +x.monto},0);
+ var inv=g.filter(function(x){return x.categoria==='inversion'}).reduce(function(s,x){return s+ +x.monto},0);
+ var gananciaBruta=ventas-costoVentas; // Ingresos - Costo directo de producción
+ var gananciaNeta=gananciaBruta-gas; // Ganancia bruta - Gastos operativos
+ return{ventas:ventas,costoVentas:costoVentas,descuentos:descuentos,gas:gas,inv:inv,gananciaBruta:gananciaBruta,gananciaNeta:gananciaNeta}}
 var toastTimer;
 function toast(m){var t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove('show')},2400)}
 function copiar(txt){if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(function(){toast('Copiado 📋')}).catch(function(){fallbackCopiar(txt)});return}fallbackCopiar(txt)}
@@ -614,7 +647,7 @@ function renderCloud(){
 window.addEventListener('online',function(){if(sbReady()){sbPush(false);toast('🟢 Conectado: sincronizando ☁️')}});
 (function(){var need=false;state.impresiones.forEach(function(i){if(i.estado==='vendida'&&!i.ventaId)need=true});
  if(need){state.impresiones.forEach(function(i){if(i.estado==='vendida'&&!i.ventaId){state.ventas.push({id:uid(),num:i.reciboNum||((state.config.reciboSeq=(+state.config.reciboSeq||0)+1)),fecha:i.fechaVenta||i.fecha,cliente:i.cliente||'',metodoPago:i.metodoPago||'Efectivo',items:[{impId:i.id,nombre:i.nombre,precio:+i.precioVenta,costo:calcDe(i).costo}],total:+i.precioVenta})}});try{localStorage.setItem('taller3d',JSON.stringify(state))}catch(e){}}})();
-var editId=null,currentFoto=null,pendingGasto=null,tabActual='mis';
+var editId=null,currentFoto=null,currentFotos=[],pendingGasto=null,tabActual='mis';
 function openDrawer(){$('#drawer').classList.add('open');$('#scrim').classList.add('show')}
 function closeDrawer(){$('#drawer').classList.remove('open');$('#scrim').classList.remove('show')}
 function go(view){closeDrawer();var vs=$$('.view');for(var i=0;i<vs.length;i++)vs[i].classList.remove('active');$('#view-'+view).classList.add('active');var ds=$$('.ditem');for(var j=0;j<ds.length;j++)ds[j].classList.toggle('active',ds[j].getAttribute('data-view')===view);
@@ -646,12 +679,40 @@ function modalSumarFilamento(){var g=pendingGasto;$('#sheetContent').innerHTML='
 function confirmarSumarFilamento(){var g=pendingGasto;var gr=parseFloat($('#sfGramos').value)||1000;var f={id:uid(),tipo:$('#sfTipo').value,marca:$('#sfMarca').value.trim(),color:$('#sfColor').value.trim(),precioKg:g.monto/(gr/1000),gramos:gr,calidad:$('#sfCalidad').value,obs:''};if(!f.marca){toast('Escribe la marca');return}state.filamentos.push(f);save();pendingGasto=null;cerrarOverlay();limpiarGastoForm();toast('Gasto + inventario 🎉')}
 function modalSumarRepuesto(){var g=pendingGasto;$('#sheetContent').innerHTML='<h3>🔧 ¿Registrar repuesto?</h3><p class="hint"><b>'+esc(g.concepto||'mantenimiento')+'</b> · '+usd(g.monto)+'</p><div class="field"><label>Nombre</label><input id="srNombre" value="'+esc(g.concepto||'')+'"></div><div class="field"><label>Vida útil (horas)</label><input type="number" id="srVida" value="500"></div><div class="grid2"><button class="btn ghost" onclick="pendingGasto=null;cerrarOverlay();limpiarGastoForm()">No, solo gasto</button><button class="btn" onclick="confirmarSumarRepuesto()">Sí 🔧</button></div>';$('#overlay').classList.remove('hidden')}
 function confirmarSumarRepuesto(){var g=pendingGasto;var n=$('#srNombre').value.trim();if(!n){toast('Nombre');return}state.repuestos.push({id:uid(),nombre:n,vidaHoras:parseFloat($('#srVida').value)||500,horasUsadas:0,fechaInstalacion:hoy(),costo:+g.monto});save();pendingGasto=null;cerrarOverlay();limpiarGastoForm();toast('Gasto + repuesto 🔧')}
-function fotoChange(e){var f=e.target.files[0];if(!f)return;var r=new FileReader();r.onload=function(){var img=new Image();img.onload=function(){var max=640,w=img.width,h=img.height;var s=Math.min(1,max/Math.max(w,h));w=Math.round(w*s);h=Math.round(h*s);var cv=document.createElement('canvas');cv.width=w;cv.height=h;cv.getContext('2d').drawImage(img,0,0,w,h);currentFoto=cv.toDataURL('image/jpeg',0.72);pintaFotoPrev()};img.src=r.result};r.readAsFile(f);e.target.value=''}
-function pintaFotoPrev(){$('#iFotoPrev').innerHTML=currentFoto?'<img class="foto-preview" src="'+currentFoto+'"><button class="btn ghost small" style="margin-top:8px" onclick="currentFoto=null;pintaFotoPrev()">✕ Quitar</button>':''}
+function fotoChange(e){var f=e.target.files[0];if(!f)return;if(f.size>3000000){toast('⚠️ Imagen muy grande (máx 3MB)');return}
+ if(currentFotos.length>=5){toast('⚠️ Máximo 5 fotos');return}
+ var r=new FileReader();r.onload=function(){var img=new Image();img.onload=function(){var max=640,w=img.width,h=img.height;var s=Math.min(1,max/Math.max(w,h));w=Math.round(w*s);h=Math.round(h*s);var cv=document.createElement('canvas');cv.width=w;cv.height=h;cv.getContext('2d').drawImage(img,0,0,w,h);currentFotos.push(cv.toDataURL('image/jpeg',0.72));pintaFotoPrev()};img.src=r.result};r.readAsDataURL(f);e.target.value=''}
+function pintaFotoPrev(){
+ var html='';var n=currentFotos.length;
+ if(n>0){
+  html+='<div class="foto-grid">';
+  currentFotos.forEach(function(foto,idx){
+   html+='<div class="foto-thumb" style="position:relative">';
+   html+='<img src="'+foto+'" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;cursor:pointer" onclick="verFotoGrande('+idx+')">';
+   html+='<button class="btn ghost small" style="position:absolute;top:4px;right:4px;padding:4px 8px;background:rgba(0,0,0,.6);color:#fff;border:none" onclick="event.stopPropagation();quitarFoto('+idx+')">✕</button>';
+   if(idx===0)html+='<span style="position:absolute;bottom:4px;left:4px;background:var(--pri);color:#fff;font-size:10px;padding:2px 6px;border-radius:8px;font-weight:700">PRINCIPAL</span>';
+   html+='</div>';
+  });
+  html+='</div>';
+  var fc=$('#fotoCount');if(fc)fc.textContent='📷 '+n+'/5 fotos — toca una para verla grande, ✕ para quitar';
+ }else{
+  var fc=$('#fotoCount');if(fc)fc.textContent='';
+ }
+ $('#iFotoPrev').innerHTML=html}
+function quitarFoto(idx){currentFotos.splice(idx,1);pintaFotoPrev()}
+function verFotoGrande(idx){if(!currentFotos[idx])return;$('#sheetContent').innerHTML='<div style="text-align:center"><img src="'+currentFotos[idx]+'" style="width:100%;max-height:70vh;object-fit:contain;border-radius:14px"><div class="mini" style="margin-top:12px"><button class="btn ghost" onclick="cerrarOverlay()">Cerrar</button></div></div>';$('#overlay').classList.remove('hidden')}
 function renderFilSelect(){$('#iFilamento').innerHTML='<option value="">— No usar inventario —</option>'+state.filamentos.map(function(f){return '<option value="'+f.id+'">'+(f.calidad==='mala'?'🔴':f.calidad==='regular'?'🟡':'')+' '+esc(f.tipo)+' · '+esc(f.marca)+' · '+esc(f.color)+' ('+Math.round(+f.gramos)+'g)</option>'}).join('')}
 function filChange(){var f=null;for(var i=0;i<state.filamentos.length;i++)if(state.filamentos[i].id===$('#iFilamento').value)f=state.filamentos[i];if(f){$('#iPrecioKg').value=f.precioKg;if(f.calidad==='mala')toast('🔴 Marca marcada como mala')}liveCalc()}
 function leerForm(){function n(id){return parseFloat($(id).value)||0}return{nombre:$('#iNombre').value.trim(),cliente:$('#iCliente').value.trim(),fecha:$('#iFecha').value||hoy(),filamentoId:$('#iFilamento').value,publicaCat:$('#iCatalogo').checked,gramos:n('#iGramos'),precioKg:n('#iPrecioKg'),horasImp:n('#iHorasImp'),costoHora:n('#iCostoHora'),horasMan:n('#iHorasMan'),tarifaMan:n('#iTarifaMan'),extras:n('#iExtras'),merma:n('#iMerma'),margen:n('#iMargen'),mercado:n('#iMercado'),publico:n('#iPublico')}}
-function fillForm(imp){editId=imp?imp.id:null;currentFoto=imp?(imp.foto||null):null;pintaFotoPrev();
+function fillForm(imp){editId=imp?imp.id:null;
+ // Cargar fotos: soporta array nuevo (fotos) o string viejo (foto) para compatibilidad
+ currentFotos=[];
+ if(imp){
+  if(imp.fotos&&Array.isArray(imp.fotos)&&imp.fotos.length>0){currentFotos=imp.fotos.slice()}
+  else if(imp.foto){currentFotos=[imp.foto]}
+ }
+ currentFoto=currentFotos[0]||null;
+ pintaFotoPrev();
  $('#tituloNueva').textContent=imp?'✏️ Editar':'🖨️ Registrar impresión';
  $('#btnCancelEdit').classList.toggle('hidden',!imp);
  var c=state.config;renderFilSelect();
@@ -676,7 +737,7 @@ function liveCalc(){var v=leerForm(),c=calcular(v);function h(x){return x.toLoca
   box.innerHTML='<div class="pill '+cls+'">'+txt+' Al precio de mercado ganarías <b>'+usd(ganM)+'</b>.</div>';}else box.innerHTML=''}
 function guardarImp(){var v=leerForm();if(!v.nombre){toast('Ponle nombre 🏷️');return}
  var prev=null;if(editId)for(var i=0;i<state.impresiones.length;i++)if(state.impresiones[i].id===editId)prev=state.impresiones[i];
- var obj={id:prev?prev.id:uid(),fecha:v.fecha,nombre:v.nombre,cliente:v.cliente,foto:currentFoto,publicaCat:v.publicaCat,gramos:v.gramos,precioKg:v.precioKg,horasImp:v.horasImp,costoHora:v.costoHora,horasMan:v.horasMan,tarifaMan:v.tarifaMan,extras:v.extras,mermaPct:v.merma,margenPct:v.margen,precioMercado:v.mercado,precioPublico:v.publico,filamentoId:v.filamentoId||null,estado:prev?prev.estado:'impresa',ventaId:prev?prev.ventaId:null,precioVenta:prev?prev.precioVenta:0,fechaVenta:prev?prev.fechaVenta:null,reciboNum:prev?prev.reciboNum:null,metodoPago:prev?prev.metodoPago:null};
+ var obj={id:prev?prev.id:uid(),fecha:v.fecha,nombre:v.nombre,cliente:v.cliente,foto:currentFotos[0]||null,fotos:currentFotos.slice(),publicaCat:v.publicaCat,gramos:v.gramos,precioKg:v.precioKg,horasImp:v.horasImp,costoHora:v.costoHora,horasMan:v.horasMan,tarifaMan:v.tarifaMan,extras:v.extras,mermaPct:v.merma,margenPct:v.margen,precioMercado:v.mercado,precioPublico:v.publico,filamentoId:v.filamentoId||null,estado:prev?prev.estado:'impresa',ventaId:prev?prev.ventaId:null,precioVenta:prev?prev.precioVenta:0,fechaVenta:prev?prev.fechaVenta:null,reciboNum:prev?prev.reciboNum:null,metodoPago:prev?prev.metodoPago:null};
  if(!prev&&v.filamentoId)for(var j=0;j<state.filamentos.length;j++)if(state.filamentos[j].id===v.filamentoId)state.filamentos[j].gramos=Math.max(0,+state.filamentos[j].gramos-v.gramos);
  if(prev)state.impresiones[state.impresiones.indexOf(prev)]=obj;else state.impresiones.push(obj);
  if(!prev)for(var k=0;k<state.repuestos.length;k++)state.repuestos[k].horasUsadas=(+state.repuestos[k].horasUsadas||0)+v.horasImp;
@@ -714,17 +775,29 @@ function abrirVentaMulti(){
  if(!ids.length){toast('Marca al menos 1 pieza');return}
  var rows='';ids.forEach(function(id){var i=findImp(id);rows+='<div class="field"><label>'+esc(i.nombre)+'</label><input type="number" step="0.01" inputmode="decimal" id="vp_'+id+'" value="'+precioDe(i).toFixed(2)+'" oninput="sumaVenta()"></div>'});
  $('#sheetContent').innerHTML='<h3>💰 Precios</h3>'+rows
- +'<div class="row acc"><span><b>TOTAL</b></span><b id="vTotal">$0.00</b></div>'
+ +'<div class="row acc"><span><b>SUBTOTAL</b></span><b id="vSubtotal">$0.00</b></div>'
+ +'<div class="field"><label>🎁 Descuento opcional (%) — para clientes especiales</label><div class="mini" style="margin:0 0 8px;display:flex;gap:6px;flex-wrap:wrap"><button class="btn small ghost" onclick="setDesc(0)">0%</button><button class="btn small ghost" onclick="setDesc(5)">5%</button><button class="btn small ghost" onclick="setDesc(10)">10%</button><button class="btn small ghost" onclick="setDesc(15)">15%</button><button class="btn small ghost" onclick="setDesc(20)">20%</button></div><input type="number" step="1" inputmode="decimal" id="vDesc" value="0" oninput="sumaVenta()" placeholder="0"></div>'
+ +'<div class="row acc" style="background:var(--okS);color:var(--ok)"><span><b>TOTAL A PAGAR</b></span><b id="vTotal">$0.00</b></div>'
  +'<div class="grid2"><div class="field"><label>Método</label><select id="vMetodo"><option>Efectivo</option><option>Transferencia</option><option>Pago móvil</option><option>Tarjeta</option><option>Otro</option></select></div><div class="field"><label>Cliente</label><input id="vCliente"></div></div>'
  +'<button class="btn" onclick="confirmarVentaMulti('+JSON.stringify(ids).replace(/"/g,'&quot;')+')">Confirmar 🎉</button><button class="btn ghost" onclick="cerrarOverlay()">Cancelar</button>';
  sumaVenta()}
-function sumaVenta(){var t=0;var ins=$$('#sheetContent input[id^=vp_]');for(var i=0;i<ins.length;i++)t+=parseFloat(ins[i].value)||0;var el=$('#vTotal');if(el)el.textContent=usd(t)}
+function setDesc(v){var d=$('#vDesc');if(d){d.value=v;sumaVenta()}}
+function sumaVenta(){var t=0;var ins=$$('#sheetContent input[id^=vp_]');for(var i=0;i<ins.length;i++)t+=parseFloat(ins[i].value)||0;
+ var sub=$('#vSubtotal');if(sub)sub.textContent=usd(t);
+ var descEl=$('#vDesc');var desc=descEl?parseFloat(descEl.value)||0:0;
+ if(desc<0)desc=0;if(desc>50)desc=50; // limitar entre 0 y 50%
+ var descMonto=t*(desc/100);
+ var total=t-descMonto;
+ var el=$('#vTotal');if(el)el.textContent=usd(total)}
 function confirmarVentaMulti(ids){
  var items=[];ids.forEach(function(id){var i=findImp(id);var p=parseFloat($('#vp_'+id).value)||0;items.push({impId:id,nombre:i.nombre,precio:p,costo:calcDe(i).costo})});
- var total=items.reduce(function(s,x){return s+x.precio},0);
- if(total<=0){toast('Ingresa precios');return}
+ var subtotal=items.reduce(function(s,x){return s+x.precio},0);
+ if(subtotal<=0){toast('Ingresa precios');return}
+ var descEl=$('#vDesc');var descPct=descEl?Math.max(0,Math.min(50,parseFloat(descEl.value)||0)):0;
+ var descMonto=subtotal*(descPct/100);
+ var total=subtotal-descMonto;
  state.config.reciboSeq=(+state.config.reciboSeq||0)+1;
- var venta={id:uid(),num:state.config.reciboSeq,fecha:hoy(),cliente:$('#vCliente').value.trim(),metodoPago:$('#vMetodo').value,items:items,total:total};
+ var venta={id:uid(),num:state.config.reciboSeq,fecha:hoy(),cliente:$('#vCliente').value.trim(),metodoPago:$('#vMetodo').value,items:items,subtotal:subtotal,descPct:descPct,descMonto:descMonto,total:total};
  state.ventas.push(venta);
  items.forEach(function(it){var i=findImp(it.impId);i.estado='vendida';i.ventaId=venta.id;i.precioVenta=it.precio;i.fechaVenta=hoy();i.metodoPago=venta.metodoPago;if(venta.cliente)i.cliente=venta.cliente});
  save();cerrarOverlay();renderImpresiones();toast('¡Venta por '+usd(total)+'! 🎉');modalReciboVenta(venta.id)}
@@ -732,17 +805,87 @@ function reciboStrVenta(v){var c=state.config,L=[];
  L.push('================================');L.push('  '+(c.nombreNegocio||'CREAMYD').toUpperCase());if(c.rif)L.push('  RIF: '+c.rif);L.push('================================');
  L.push('Fecha: '+fFecha(v.fecha));L.push('Recibo N° '+String(v.num).padStart(4,'0'));if(v.cliente)L.push('Cliente: '+v.cliente);L.push('--------------------------------');
  v.items.forEach(function(it){L.push(it.nombre);L.push(' 1 x '+usd(it.precio))});
- L.push('--------------------------------');L.push('TOTAL: '+usd(v.total));var l=localDe(v.total);if(l)L.push('Ref: '+l);L.push('Pago: '+v.metodoPago);L.push('================================');L.push(c.mensajeRecibo||'¡Gracias por tu compra!');
+ L.push('--------------------------------');
+ var sub=v.subtotal||v.total;
+ if(v.descPct&&v.descPct>0){L.push('Subtotal: '+usd(sub));L.push('Descuento '+v.descPct+'%: -'+usd(v.descMonto||0));L.push('--------------------------------')}
+ L.push('TOTAL: '+usd(v.total));var l=localDe(v.total);if(l)L.push('Ref: '+l);L.push('Pago: '+v.metodoPago);L.push('================================');L.push(c.mensajeRecibo||'¡Gracias por tu compra!');
  return L.join('\n')}
 function modalReciboVenta(vid){var v=state.ventas.find(function(x){return x.id===vid});if(!v)return;
- $('#sheetContent').innerHTML='<h3>🧾 Recibo N° '+String(v.num).padStart(4,'0')+'</h3><div class="ticket">'+esc(reciboStrVenta(v))+'</div><div class="grid2"><button class="btn" onclick="printReciboVenta(\''+v.id+'\')">🖨️ Imprimir</button><button class="btn ghost" onclick="copiar(reciboStrVenta(state.ventas.find(x=>x.id===\''+v.id+'\')))">📋 Copiar</button></div><button class="btn ghost" onclick="cerrarOverlay()">Cerrar</button>';
+ $('#sheetContent').innerHTML='<h3>🧾 Recibo N° '+String(v.num).padStart(4,'0')+'</h3><div class="ticket">'+esc(reciboStrVenta(v))+'</div><div class="grid2"><button class="btn" onclick="printReciboVenta(\''+v.id+'\')">🖨️ Imprimir</button><button class="btn ghost" onclick="copiar(reciboStrVenta(state.ventas.find(x=>x.id===\''+v.id+'\')))">📋 Copiar</button></div><div class="grid2" style="margin-top:8px"><button class="btn ghost" style="color:var(--pri);border-color:var(--pri)" onclick="cerrarOverlay();editarVenta(\''+v.id+'\')">✏️ Editar</button><button class="btn ghost" style="color:var(--bad);border-color:#f5c2c4" onclick="borrarVenta(\''+v.id+'\')">🗑️ Eliminar</button></div><button class="btn ghost" onclick="cerrarOverlay()">Cerrar</button>';
  $('#overlay').classList.remove('hidden')}
+function editarVenta(vid){var v=state.ventas.find(function(x){return x.id===vid});if(!v)return;
+ var rows='';v.items.forEach(function(it){rows+='<div class="field"><label>'+esc(it.nombre)+'</label><input type="number" step="0.01" inputmode="decimal" id="evp_'+it.impId+'" value="'+it.precio+'" oninput="sumaEditVenta()"></div>'});
+ $('#sheetContent').innerHTML='<h3>✏️ Editar venta N° '+String(v.num).padStart(4,'0')+'</h3>'+rows
+ +'<div class="row acc"><span><b>SUBTOTAL</b></span><b id="evSubtotal">$0.00</b></div>'
+ +'<div class="field"><label>🎁 Descuento (%)</label><div class="mini" style="margin:0 0 8px;display:flex;gap:6px;flex-wrap:wrap"><button class="btn small ghost" onclick="setEditDesc(0)">0%</button><button class="btn small ghost" onclick="setEditDesc(10)">10%</button><button class="btn small ghost" onclick="setEditDesc(15)">15%</button><button class="btn small ghost" onclick="setEditDesc(20)">20%</button></div><input type="number" step="1" inputmode="decimal" id="evDesc" value="'+(v.descPct||0)+'" oninput="sumaEditVenta()"></div>'
+ +'<div class="row acc" style="background:var(--okS);color:var(--ok)"><span><b>TOTAL</b></span><b id="evTotal">$0.00</b></div>'
+ +'<div class="grid2"><div class="field"><label>Método</label><select id="evMetodo"><option>Efectivo</option><option>Transferencia</option><option>Pago móvil</option><option>Tarjeta</option><option>Otro</option></select></div><div class="field"><label>Cliente</label><input id="evCliente" value="'+esc(v.cliente||'')+'"></div></div>'
+ +'<button class="btn" onclick="guardarEditVenta(\''+v.id+'\')">💾 Guardar cambios</button><button class="btn ghost" onclick="cerrarOverlay()">Cancelar</button>';
+ $('#evMetodo').value=v.metodoPago;
+ sumaEditVenta();
+ $('#overlay').classList.remove('hidden')}
+function setEditDesc(v){var d=$('#evDesc');if(d){d.value=v;sumaEditVenta()}}
+function sumaEditVenta(){var t=0;var ins=$$('#sheetContent input[id^=evp_]');for(var i=0;i<ins.length;i++)t+=parseFloat(ins[i].value)||0;
+ var sub=$('#evSubtotal');if(sub)sub.textContent=usd(t);
+ var descEl=$('#evDesc');var desc=descEl?Math.max(0,Math.min(50,parseFloat(descEl.value)||0)):0;
+ var descMonto=t*(desc/100);
+ var total=t-descMonto;
+ var el=$('#evTotal');if(el)el.textContent=usd(total)}
+function guardarEditVenta(vid){var v=state.ventas.find(function(x){return x.id===vid});if(!v)return;
+ v.items.forEach(function(it){var el=$('#evp_'+it.impId);if(el)it.precio=parseFloat(el.value)||0});
+ var subtotal=v.items.reduce(function(s,x){return s+x.precio},0);
+ var descEl=$('#evDesc');var descPct=descEl?Math.max(0,Math.min(50,parseFloat(descEl.value)||0)):0;
+ var descMonto=subtotal*(descPct/100);
+ v.subtotal=subtotal;v.descPct=descPct;v.descMonto=descMonto;v.total=subtotal-descMonto;
+ v.cliente=$('#evCliente').value.trim();v.metodoPago=$('#evMetodo').value;
+ save();cerrarOverlay();renderInicio();renderImpresiones();toast('Venta actualizada ✅')}
+function borrarVenta(vid){var v=state.ventas.find(function(x){return x.id===vid});if(!v)return;
+ if(!confirm('¿Seguro que quieres ELIMINAR la venta N° '+String(v.num).padStart(4,'0')+'?\n\nEsto pondrá las piezas de vuelta como "sin vender".\n\nNo se puede deshacer.'))return;
+ // Restaurar piezas a estado "impresa"
+ v.items.forEach(function(it){var i=findImp(it.impId);if(i){i.estado='impresa';i.ventaId=null;i.precioVenta=0;i.fechaVenta=null;i.metodoPago=null}});
+ state.ventas=state.ventas.filter(function(x){return x.id!==vid});
+ save();cerrarOverlay();renderInicio();renderImpresiones();toast('Venta eliminada 🗑️')}
 function printFrame(doc){var f=document.createElement('iframe');f.setAttribute('style','position:fixed;right:0;bottom:0;width:0;height:0;border:0');document.body.appendChild(f);f.onload=function(){try{f.contentWindow.focus();f.contentWindow.print()}catch(e){}setTimeout(function(){f.remove()},4000)};f.srcdoc=doc}
 function printReciboVenta(vid){var v=state.ventas.find(function(x){return x.id===vid});var doc='<!DOCTYPE html><html><head><meta charset="utf-8"><style>@page{size:58mm auto;margin:0}body{width:54mm;margin:0 auto;font-family:"Courier New",monospace;font-size:11px;line-height:1.5;color:#000;white-space:pre-wrap;padding:3mm 1mm}</style></head><body>'+esc(reciboStrVenta(v))+'</body></html>';printFrame(doc);toast('Elige tu impresora térmica 🖨️')}
 function printGasto(id){var g=state.gastos.find(function(x){return x.id===id});var L=['================================','  COMPROBANTE DE GASTO','  '+(state.config.nombreNegocio||'Taller 3D').toUpperCase(),'================================','Fecha: '+fFecha(g.fecha),'Categoría: '+CATS[g.categoria].n,'Concepto: '+(g.concepto||'-'),'--------------------------------','MONTO: '+usd(g.monto),'================================'];var doc='<!DOCTYPE html><html><head><meta charset="utf-8"><style>@page{size:58mm auto;margin:0}body{width:54mm;margin:0 auto;font-family:"Courier New",monospace;font-size:11px;line-height:1.5;color:#000;white-space:pre-wrap;padding:3mm 1mm}</style></head><body>'+esc(L.join('\n'))+'</body></html>';printFrame(doc)}
 function modalPieza(id){var i=findImp(id);if(!i)return;var p=precioDe(i);
- $('#sheetContent').innerHTML=(i.foto?'<img src="'+i.foto+'" style="width:100%;max-height:300px;object-fit:cover;border-radius:16px;margin-bottom:12px">':'')+'<h3>'+esc(i.nombre)+'</h3><div class="kv"><span>💵 Precio</span><b style="color:var(--pri);font-size:19px">'+usd(p)+'</b></div><div class="loc" style="text-align:right">'+(localDe(p)?'≈ '+localDe(p):'')+'</div><div class="mini"><button class="btn small teal" onclick="copiar(textoPromo(\''+i.id+'\',null))">📋 Promo</button><button class="btn small" onclick="compartir(textoPromo(\''+i.id+'\',null),fotoDe(\''+i.id+'\'))">📤 Compartir</button><button class="btn small ghost" onclick="cerrarOverlay();modalEnviarClientes(\''+i.id+'\')">💬 Clientes</button></div><button class="btn ghost" style="margin-top:8px" onclick="cerrarOverlay();editarImp(\''+i.id+'\')">✏️ Editar</button>';
+ // Obtener array de fotos (compatibilidad: fotos[] o foto string)
+ var fotos=[];
+ if(i.fotos&&Array.isArray(i.fotos)&&i.fotos.length>0)fotos=i.fotos.slice();
+ else if(i.foto)fotos=[i.foto];
+ var fotoHtml='';
+ if(fotos.length>0){
+  fotoHtml+='<div class="foto-carrusel" id="carrusel">';
+  fotoHtml+='<img class="main-foto" id="carrMain" src="'+fotos[0]+'">';
+  if(fotos.length>1){
+   fotoHtml+='<button class="nav-btn prev" onclick="carrNav(-1)">‹</button>';
+   fotoHtml+='<button class="nav-btn next" onclick="carrNav(1)">›</button>';
+  }
+  fotoHtml+='</div>';
+  if(fotos.length>1){
+   fotoHtml+='<div class="foto-thumbs-row">';
+   fotos.forEach(function(f,idx){
+    fotoHtml+='<img src="'+f+'" '+(idx===0?'class="active"':'')+' onclick="carrSelect('+idx+')" data-idx="'+idx+'">';
+   });
+   fotoHtml+='</div>';
+   fotoHtml+='<div class="dots">';
+   fotos.forEach(function(f,idx){
+    fotoHtml+='<div class="dot '+(idx===0?'active':'')+'" onclick="carrSelect('+idx+')"></div>';
+   });
+   fotoHtml+='</div>';
+  }
+ }
+ $('#sheetContent').innerHTML=fotoHtml+'<h3>'+esc(i.nombre)+'</h3><div class="kv"><span>💵 Precio</span><b style="color:var(--pri);font-size:19px">'+usd(p)+'</b></div><div class="loc" style="text-align:right">'+(localDe(p)?'≈ '+localDe(p):'')+'</div><div class="mini"><button class="btn small teal" onclick="copiar(textoPromo(\''+i.id+'\',null))">📋 Promo</button><button class="btn small" onclick="compartir(textoPromo(\''+i.id+'\',null),fotoDe(\''+i.id+'\'))">📤 Compartir</button><button class="btn small ghost" onclick="cerrarOverlay();modalEnviarClientes(\''+i.id+'\')">💬 Clientes</button></div><button class="btn ghost" style="margin-top:8px" onclick="cerrarOverlay();editarImp(\''+i.id+'\')">✏️ Editar</button>';
+ // Guardar fotos en variable global para el carrusel
+ window._carrFotos=fotos;window._carrIdx=0;
  $('#overlay').classList.remove('hidden')}
+function carrNav(dir){var fotos=window._carrFotos;if(!fotos||fotos.length<=1)return;var n=fotos.length;window._carrIdx=(window._carrIdx+dir+n)%n;carrUpdate()}
+function carrSelect(idx){window._carrIdx=idx;carrUpdate()}
+function carrUpdate(){var fotos=window._carrFotos;if(!fotos)return;var idx=window._carrIdx;
+ var main=$('#carrMain');if(main)main.src=fotos[idx];
+ // Actualizar thumbs activos
+ var thumbs=document.querySelectorAll('.foto-thumbs-row img');thumbs.forEach(function(t,i){t.classList.toggle('active',i===idx)});
+ var dots=document.querySelectorAll('.foto-carrusel .dot');dots.forEach(function(d,i){d.classList.toggle('active',i===idx)})}
 function fotoDe(id){var i=findImp(id);return i?i.foto:null}
 function textoPromo(prodId,clienteNombre){var c=state.config,neg=c.nombreNegocio||'Taller 3D';var t=(clienteNombre?'¡Hola '+clienteNombre+'! 👋':'¡Hola! 👋')+' Te escribo de *'+neg+'* 🖨️✨\n\n';var p=prodId?findImp(prodId):null;
  if(p){t+='⭐ *'+p.nombre+'* — '+usd(precioDe(p))+locTxt(precioDe(p))+'\n\n🎨 Impresión 3D de calidad\n📏 Personalizamos colores\n'}
@@ -785,23 +928,20 @@ function renderInventario(){
  $('#alertasMant').innerHTML=ah;$('#alertasMantInv').innerHTML=ah}
 function renderInicio(){chipTasa();
  var g=state.gastos,vs=state.ventas;
- var inv=g.filter(function(x){return x.categoria==='inversion'}).reduce(function(s,x){return s+ +x.monto},0);
- var gas=g.filter(function(x){return x.categoria!=='inversion'}).reduce(function(s,x){return s+ +x.monto},0);
- var ventas=vs.reduce(function(s,v){return s+v.total},0);
- var gan=ventas-gas;var mk=hoy().slice(0,7);
+ var r=calcGanancias();
+ var mk=hoy().slice(0,7);
  var mesIn=vs.filter(function(v){return v.fecha.startsWith(mk)}).reduce(function(s,v){return s+v.total},0);
  var mesOut=g.filter(function(x){return x.fecha.startsWith(mk)}).reduce(function(s,x){return s+ +x.monto},0);
- $('#dGan').textContent=usd(gan);$('#sGan').textContent=localDe(gan)?'≈ '+localDe(gan):'';
- $('#dVen').textContent=usd(ventas);$('#dGas').textContent=usd(gas);$('#dMesIn').textContent=usd(mesIn);$('#dMesOut').textContent=usd(mesOut);
- $('#dVentas').innerHTML=vs.slice().sort(function(a,b){return b.fecha.localeCompare(a.fecha)}).slice(0,4).map(function(v){return '<div class="kv"><span>🧾 #'+String(v.num).padStart(4,'0')+' · '+v.items.length+' pieza(s)</span><b>'+usd(v.total)+' '+sub(v.total)+'</b></div>'}).join('')||'<div class="empty">Aún sin ventas 💪</div>';
+ // Mostrar GANANCIA REAL (no solo ventas - gastos)
+ $('#dGan').textContent=usd(r.gananciaNeta);$('#sGan').textContent=localDe(r.gananciaNeta)?'≈ '+localDe(r.gananciaNeta):'';
+ $('#dVen').textContent=usd(r.ventas);$('#dGas').textContent=usd(r.gas);$('#dMesIn').textContent=usd(mesIn);$('#dMesOut').textContent=usd(mesOut);
+ $('#dVentas').innerHTML=vs.slice().sort(function(a,b){return b.fecha.localeCompare(a.fecha)}).slice(0,4).map(function(v){return '<div class="kv"><span>🧾 #'+String(v.num).padStart(4,'0')+' · '+v.items.length+' pieza(s)'+(v.descPct>0?' · 🎁 '+v.descPct+'% off':'')+'</span><b>'+usd(v.total)+' '+sub(v.total)+'</b></div>'}).join('')||'<div class="empty">Aún sin ventas 💪</div>';
  $('#dVacio').classList.toggle('hidden',g.length+state.impresiones.length>0);
  renderInventario()}
 function renderReportes(){
  var g=state.gastos,vs=state.ventas;
- var inv=g.filter(function(x){return x.categoria==='inversion'}).reduce(function(s,x){return s+ +x.monto},0);
- var gas=g.filter(function(x){return x.categoria!=='inversion'}).reduce(function(s,x){return s+ +x.monto},0);
- var ventas=vs.reduce(function(s,v){return s+v.total},0);
- var gan=ventas-gas;
+ var r=calcGanancias();
+ var gan=r.gananciaNeta;
  var por={};g.forEach(function(x){por[x.categoria]=(por[x.categoria]||0)+ +x.monto});
  var tot=Object.keys(por).reduce(function(s,k){return s+por[k]},0);
  if(tot>0){var acc=0,stops=[],leg='';Object.keys(por).sort(function(a,b){return por[b]-por[a]}).forEach(function(k){var from=acc/tot*100;acc+=por[k];var to=acc/tot*100;stops.push((COL[k]||'#94a3b8')+' '+from.toFixed(2)+'% '+to.toFixed(2)+'%');leg+='<div class="li"><span class="dot" style="background:'+(COL[k]||'#94a3b8')+'"></span>'+CATS[k].e+' '+CATS[k].s+' ('+Math.round(por[k]/tot*100)+'%)<b>'+usd(por[k])+'</b></div>'});
@@ -817,7 +957,15 @@ function renderReportes(){
  var ins=g.filter(function(x){return CATS[x.categoria].g==='ins'}).reduce(function(s,x){return s+ +x.monto},0);
  var ope=g.filter(function(x){return CATS[x.categoria].g==='ope'}).reduce(function(s,x){return s+ +x.monto},0);
  var per=g.filter(function(x){return CATS[x.categoria].g==='per'}).reduce(function(s,x){return s+ +x.monto},0);
- $('#contabBox').innerHTML='<div class="crow"><span class="ce">💵</span><div class="ct"><b>Ingresos <span>'+usd(ventas)+'</span></b><small>Ventas totales.</small></div></div><div class="crow"><span class="ce">🏭</span><div class="ct"><b>Inversión <span>'+usd(inv)+'</span></b><small>Equipos que duran años.</small></div></div><div class="crow"><span class="ce">🧵</span><div class="ct"><b>Insumos <span>'+usd(ins)+'</span></b><small>Material y embalaje.</small></div></div><div class="crow"><span class="ce">⚡</span><div class="ct"><b>Operación <span>'+usd(ope)+'</span></b><small>Luz, transporte, mantenimiento.</small></div></div><div class="crow"><span class="ce">👥</span><div class="ct"><b>Mano de obra <span>'+usd(per)+'</span></b><small>Pagos por trabajo.</small></div></div><div class="crow"><span class="ce">📈</span><div class="ct"><b>Ganancia <span style="color:'+(gan>=0?'var(--ok)':'var(--bad)')+'">'+usd(gan)+'</span></b><small>Ingresos − gastos </small></div></div>'}
+ // === NUEVO DESGLOSE DE GANANCIA REAL ===
+ $('#contabBox').innerHTML=
+  '<div class="crow"><span class="ce">💵</span><div class="ct"><b>Ingresos por ventas <span>'+usd(r.ventas)+'</span></b><small>Dinero que recibiste de los clientes.</small></div></div>'
+ +'<div class="crow"><span class="ce">🏭</span><div class="ct"><b>(−) Costo de producción <span style="color:var(--bad)">−'+usd(r.costoVentas)+'</span></b><small>Material + máquina + mano de obra + merma de las piezas vendidas.</small></div></div>'
+ +(r.descuentos>0?'<div class="crow"><span class="ce">🎁</span><div class="ct"><b>(−) Descuentos a clientes <span style="color:var(--bad)">−'+usd(r.descuentos)+'</span></b><small>Descuentos aplicados en ventas.</small></div></div>':'')
+ +'<div class="crow" style="background:var(--tealS);border-radius:12px;padding:8px 12px;margin:4px 0"><span class="ce">📊</span><div class="ct"><b>= Ganancia bruta <span style="color:var(--teal)">'+usd(r.gananciaBruta)+'</span></b><small>Ingresos − costo de producción. Margen real de tus piezas.</small></div></div>'
+ +'<div class="crow"><span class="ce">⚡</span><div class="ct"><b>(−) Gastos operativos <span style="color:var(--bad)">−'+usd(r.gas)+'</span></b><small>Luz, transporte, servicios, mantenimiento, etc.</small></div></div>'
+ +'<div class="crow" style="background:'+(gan>=0?'var(--okS)':'var(--badS)')+';border-radius:12px;padding:8px 12px;margin:4px 0"><span class="ce">'+(gan>=0?'📈':'📉')+'</span><div class="ct"><b>= GANANCIA REAL <span style="color:'+(gan>=0?'var(--ok)':'var(--bad)')+';font-size:18px">'+usd(gan)+'</span></b><small>Ganancia bruta − gastos operativos. Esto es lo que realmente ganaste.</small></div></div>'
+ +'<div class="crow"><span class="ce">🏭</span><div class="ct"><b>Inversión en equipos <span>'+usd(r.inv)+'</span></b><small>Equipos que duran años (no se descuentan de la ganancia).</small></div></div>'}
 function cfgNumInput(key,el){state.config[key]=parseFloat(el.value)||0;save();renderCostoHora()}
 function cfgTextInput(key,el){state.config[key]=el.value;save();if(key==='nombreNegocio')refreshNombre();if(key==='sbUrl'||key==='sbKey')renderCloud()}
 function cfgCheck(el){state.config.mostrarLocal=el.checked;save()}
